@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"http/internal/headers"
 	"io"
 	"strconv"
 	"strings"
@@ -23,7 +22,7 @@ const (
 
 type Request struct {
 	RequestLine RequestLine
-	Headers     headers.Headers
+	Headers     Headers
 	state       internal
 	Body        []byte
 }
@@ -48,7 +47,6 @@ var MALFORMED_HTTP_VERSION = fmt.Errorf("malformed http version")
 var MALFORMED_REQUEST_LINE = fmt.Errorf("malformed request line")
 var CONTENT_LENGTH_LENGTH_NOT_VALID = fmt.Errorf("the content length could not be parsed as it contains none digits")
 
-var SEPARATOR = "\r\n"
 
 func RequestFromReader(r io.Reader) (*Request, error) {
 	var buf bytes.Buffer
@@ -56,7 +54,7 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 	tmp := make([]byte, bufLen)
 	request := Request{
 		state:   initialized,
-		Headers: make(headers.Headers),
+		Headers: make(Headers),
 	}
 
 	for {

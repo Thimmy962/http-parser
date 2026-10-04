@@ -3,7 +3,6 @@ package request
 import (
 	"io"
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,6 +12,11 @@ type chunkReader struct {
 	numBytesPerRead int
 	pos             int
 }
+
+func NewHeaders() Headers {
+	return Headers{}
+}
+
 
 // Read reads up to len(p) or numBytesPerRead bytes from the string per call
 // its useful for simulating reading a variable number of bytes per chunk from a network connection
@@ -108,3 +112,43 @@ func TestBodyParse(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRequestLineParseAgain(t *testing.T) {
+	// Test: Valid single header
+	headers := NewHeaders()
+	data := []byte("Host: localhost:42069\r\n\r\n")
+	n, done, err := headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	assert.Equal(t, "localhost:42069", headers["host"])
+	assert.Equal(t, 23, n)
+	assert.False(t, done)
+
+	// Test: Invalid spacing header
+	headers = NewHeaders()
+	data = []byte("       Host : localhost:42069       \r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.Error(t, err)
+	assert.Equal(t, 0, n)
+	assert.False(t, done)
+
+	// Test: Invalid character in header
+	headers = NewHeaders()
+	data = []byte("H©st: localhost:42069\r\n\r\n")
+	_, done, err = headers.Parse(data)
+	require.Error(t, err)
+	assert.False(t, done)
+
+	headers = NewHeaders()
+	data = []byte("Host:localhost:8080\r\n\r\n")
+	_, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	assert.False(t, done)
+
+	headers = NewHeaders()
+	data = []byte("Host:localhost:8000\r\n\r\nServer: SimpleHTTP/0.6 /3.12.3\r\n\r\nHello")
+	_, done, err = headers.Parse(data)
+
+	require.NoError(t, err)
+	assert.False(t, done)
+
+}
